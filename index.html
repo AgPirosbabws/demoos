@@ -16,7 +16,7 @@
       background: #000;
       font-family: sans-serif;
     }
-    .view360-container {
+    #viewer {
       width: 100%;
       height: 100%;
       position: relative;
@@ -33,8 +33,8 @@
       color: white;
       font-size: 1.2rem;
       z-index: 10;
+      flex-direction: column;
     }
-    /* Spinner */
     .spinner {
       border: 4px solid rgba(255, 255, 255, 0.2);
       border-top: 4px solid #fff;
@@ -42,7 +42,7 @@
       width: 40px;
       height: 40px;
       animation: spin 1s linear infinite;
-      margin-right: 10px;
+      margin-bottom: 10px;
     }
     @keyframes spin {
       0% { transform: rotate(0deg); }
@@ -51,29 +51,23 @@
   </style>
 </head>
 <body>
-  <div class="view360-container" id="viewer">
+  <div id="viewer">
     <div id="loading">
-      <div class="spinner"></div> Loading 360° View...
+      <div class="spinner"></div>
+      Loading 360° View...
     </div>
-    <canvas class="view360-canvas"></canvas>
   </div>
 
-  <!-- View360 JS -->
+  <!-- View360 JS (integrated build with PanoViewer) -->
   <script src="https://naver.github.io/egjs-view360/release/latest/dist/view360.pkgd.min.js"></script>
   <script>
-    // Create viewer
-    const viewer = new View360.Viewer(document.getElementById("viewer"), {
-      projection: new View360.EquirectProjection({
-        src: "https://raw.githubusercontent.com/mrdeeppatel/D7360.github.io/refs/heads/main/panoramas/FrontGateLeftSideFinal.jpg"
-      }),
-      autoplay: true,
-      yaw: 0,
-      pitch: 0,
-      fov: 75
+    const panoViewer = new eg.view360.PanoViewer(document.getElementById("viewer"), {
+      image: "https://raw.githubusercontent.com/mrdeeppatel/D7360.github.io/refs/heads/main/panoramas/FrontGateLeftSideFinal.jpg",
+      projectionType: eg.view360.PanoViewer.PROJECTION_TYPE.EQUIRECTANGULAR,
+      useZoom: true
     });
 
-    // Hide loading when ready
-    viewer.on("ready", () => {
+    panoViewer.on("ready", () => {
       document.getElementById("loading").style.display = "none";
     });
   </script>
