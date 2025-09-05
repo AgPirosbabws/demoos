@@ -1,218 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>College Main Gate - 360° View</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- egjs-view360 Library -->
-    <link rel="stylesheet" href="https://unpkg.com/@egjs-view360/css/view360.min.css">
-    <script src="https://unpkg.com/@egjs-view360/dist/view360.pkgd.min.js"></script>
-
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
-
-    <!-- Custom Styles -->
-    <style>
-        html, body {
-            height: 100%;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden; /* Prevent scrolling */
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #111827; /* Dark background */
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* Make the viewer take the full screen */
-        #pano-viewer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: transparent;
-        }
-        
-        /* Custom loading spinner */
-        .loader {
-            width: 50px;
-            aspect-ratio: 1;
-            border-radius: 50%;
-            border: 8px solid #0000;
-            border-right-color: #4f46e5;
-            position: relative;
-            animation: l24 1s infinite linear;
-        }
-        .loader:before,
-        .loader:after {
-            content: "";
-            position: absolute;
-            inset: -8px;
-            border-radius: 50%;
-            border: inherit;
-            animation: inherit;
-            animation-duration: 2s;
-        }
-        .loader:after {
-            animation-duration: 4s;
-        }
-        @keyframes l24 {
-            100% {transform: rotate(1turn)}
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>College 360 — Main Gate</title>
+  <meta name="description" content="Explore a 360° view of the college main gate." />
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- View360 (global build) -->
+  <script src="https://unpkg.com/@egjs/view360/dist/view360.global.prod.js" defer></script>
+  <script src="script.js" defer></script>
 </head>
-<body class="bg-gray-900">
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>College 360</h1>
+    </div>
+    <nav class="nav">
+      <a class="nav-link active" href="#" aria-current="page">Main gate</a>
+      <a class="nav-link disabled" title="Coming soon">Campus road</a>
+      <a class="nav-link disabled" title="Coming soon">Library</a>
+      <a class="nav-link disabled" title="Coming soon">Auditorium</a>
+    </nav>
+  </header>
 
-    <!-- 360 Viewer takes the full page -->
-    <div id="pano-viewer"></div>
-    
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="absolute inset-0 bg-gray-900 bg-opacity-90 flex flex-col items-center justify-center text-white z-20 transition-opacity duration-500">
-        <div class="loader"></div>
-        <p class="mt-4 text-lg font-medium">Loading 360° View...</p>
-        <p id="error-message" class="mt-2 text-red-400"></p>
+  <main class="viewer-wrap">
+    <div id="viewer" class="viewer" aria-label="360 degree view of the college main gate" role="region">
+      <div class="loading" id="loading" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <span class="loading-text">Loading 360° view…</span>
+      </div>
+      <noscript>
+        Please enable JavaScript to view the 360° panorama.
+      </noscript>
     </div>
 
-    <script>
-        // --- POLLING FUNCTION TO WAIT FOR THE LIBRARY ---
-        function waitForLibrary(callback, fallback) {
-            let attempts = 0;
-            const maxAttempts = 200; // 200 * 50ms = 10 seconds
-            const interval = 50;
+    <div class="hud">
+      <button id="resetBtn" class="btn" type="button" aria-label="Reset view">Reset</button>
+      <div class="hint">Drag or tilt phone to look around</div>
+    </div>
+  </main>
 
-            const check = () => {
-                // Check if the eg.view360 library is loaded and ready
-                if (window.eg && window.eg.view360) {
-                    callback();
-                } else {
-                    attempts++;
-                    if (attempts < maxAttempts) {
-                        setTimeout(check, interval);
-                    } else {
-                        // The library failed to load after the timeout
-                        fallback();
-                    }
-                }
-            };
-            check();
-        }
-
-        // --- MAIN APP LOGIC ---
-        function runApp() {
-            // --- CONFIGURATION ---
-            const mainGate = {
-                title: 'College Front Gate',
-                // Using a CDN with the new image URL to ensure proper CORS headers.
-                imageUrl: 'https://cdn.jsdelivr.net/gh/mrdeeppatel/D7360.github.io@main/panoramas/FrontGateLeftSideFinal.jpg'
-            };
-
-            // --- DOM ELEMENTS ---
-            const viewerElement = document.getElementById("pano-viewer");
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const errorMessage = document.getElementById('error-message');
-            
-            let panoViewer;
-
-            // --- FUNCTIONS ---
-            function showLoadingError(message) {
-                const loader = loadingOverlay.querySelector('.loader');
-                const p = loadingOverlay.querySelector('p');
-                if (loader) loader.style.display = 'none'; // Hide spinner
-                if (p) p.textContent = 'Error';
-                errorMessage.textContent = message || 'Could not load the 360° image. Please try refreshing.';
-            }
-
-            // Function to initialize the PanoViewer
-            function initViewer(imageElement) {
-                if (panoViewer) {
-                    panoViewer.destroy();
-                }
-
-                panoViewer = new eg.view360.PanoViewer(viewerElement, {
-                    image: imageElement, // Use the preloaded image element
-                    projectionType: eg.view360.PanoViewer.PROJECTION_TYPE.EQUIRECTANGULAR,
-                    useZoom: true,
-                    useGyro: true, // Enables gyroscope on mobile devices
-                    yawRange: [-180, 180],
-                    pitchRange: [-90, 90],
-                    fovRange: [40, 100],
-                    initialZoom: 75
-                });
-
-                panoViewer.on("ready", () => {
-                    console.log("Viewer is ready.");
-                    // Fade out the loading screen
-                    loadingOverlay.style.opacity = '0';
-                    setTimeout(() => {
-                        loadingOverlay.style.display = 'none';
-                    }, 500); // Match duration in CSS
-                });
-
-                panoViewer.on("error", e => {
-                    console.error("PanoViewer encountered an error.", e.message || e);
-                    showLoadingError("The viewer encountered an unexpected error.");
-                });
-
-                // Ensure viewer resizes with the window
-                window.addEventListener("resize", () => {
-                    if (panoViewer) {
-                        panoViewer.resize();
-                    }
-                });
-            }
-
-            // Function to start loading the 360 image
-            function loadMainGate() {
-                // Preload image with correct CORS settings to prevent texture errors
-                const image = new Image();
-                image.crossOrigin = "anonymous";
-                
-                image.onload = () => {
-                    // Once image is loaded, initialize the viewer
-                    initViewer(image);
-                };
-                
-                image.onerror = () => {
-                    // Handle image loading failure
-                    console.error("Failed to load image:", mainGate.imageUrl);
-                    showLoadingError(`Failed to load the main gate image.`);
-                };
-                
-                // Start loading the image
-                image.src = mainGate.imageUrl;
-            }
-
-            // --- INITIALIZATION ---
-            loadMainGate();
-        }
-
-        // --- STARTUP ---
-        // This is the entry point. It waits for the library and then starts the app.
-        waitForLibrary(
-            runApp, // On success, run the app
-            () => { // On failure (timeout)
-                // This function is defined here because it needs access to the DOM elements.
-                console.error("eg.view360 library failed to load in time.");
-                const loadingOverlay = document.getElementById('loading-overlay');
-                const errorMessage = document.getElementById('error-message');
-                const loader = loadingOverlay.querySelector('.loader');
-                const p = loadingOverlay.querySelector('p');
-                if (loader) loader.style.display = 'none';
-                if (p) p.textContent = 'Error';
-                errorMessage.textContent = "The 360° viewer library failed to load. Please try refreshing.";
-            }
-        );
-    </script>
+  <footer class="site-footer">
+    <p>© <span id="year"></span> College 360 • Built with View360</p>
+  </footer>
 </body>
 </html>
-
